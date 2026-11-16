@@ -16,8 +16,12 @@ h2 .n{color:var(--ink);margin-left:6px}
 .note{margin:6px 0 10px;font-size:12.5px;color:var(--muted)}
 ul{list-style:none;margin:0;padding:0}
 li{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
-.biz{flex:1 1 auto;min-width:0;display:block;min-height:48px;padding:6px 0;text-decoration:none;color:inherit;-webkit-tap-highlight-color:rgba(19,41,75,.08)}
-b{display:block;font-size:15.5px;font-weight:600;line-height:1.3;word-wrap:break-word;border-bottom:1px solid var(--line);display:inline}
+.biz{flex:1 1 auto;min-width:0;display:block;min-height:48px;padding:6px 0;text-decoration:none;color:inherit;cursor:pointer;-webkit-tap-highlight-color:rgba(19,41,75,.08)}
+.biz b{display:inline;font-size:15.5px;font-weight:600;line-height:1.3;word-wrap:break-word;color:var(--ink);text-decoration:underline;text-decoration-color:rgba(92,102,114,.42);text-decoration-thickness:1px;text-underline-offset:3px}
+.biz:hover b,.biz:focus-visible b{color:var(--navy);text-decoration-color:var(--navy);text-decoration-thickness:2px}
+.biz:hover b::after,.biz:focus-visible b::after{content:" 97";color:var(--navy);font-weight:500}
+.biz:focus-visible{outline:2px solid var(--navy);outline-offset:3px}
+@media (hover:none){.biz b::after{content:" 97";color:var(--muted);font-weight:500;font-size:13px}}
 .m{display:block;font-size:12.5px;color:var(--muted);margin-top:3px}
 .f{display:inline-block;font-size:11px;letter-spacing:.05em;text-transform:uppercase;margin-top:5px;color:var(--muted)}
 li.hot .f{color:var(--hot)} li.warm .f{color:var(--warm)}
