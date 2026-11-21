@@ -1,0 +1,14 @@
+{
+ "_how": "Re-check of each lead's Google listing and website. Newer checks override leads.json. status: none = no website, dead = listed site doesn't load or is parked/expired, weak = thin site, ok = working site (deprioritise).",
+ "American Pressure Clean": {"checked": "2026-11-20", "status": "none", "rating": 4.6, "reviews": 328, "note": "No website on listing"},
+ "Aqua Force Pressure Cleaning & Roof Cleaning": {"checked": "2026-11-20", "status": "ok", "rating": 5.0, "reviews": 671, "note": "Working site: aquaforcepressurecleaning.com"},
+ "Bellosa's Pressure Washing LLC.": {"checked": "2026-11-20", "status": "none", "rating": 5.0, "reviews": 32, "note": "No website on listing"},
+ "Dm Pressure Washing and property services": {"checked": "2026-11-20", "status": "none", "rating": 5.0, "reviews": 81, "note": "No website on listing"},
+ "Eddie's Pressure Cleaning LLC": {"checked": "2026-11-20", "status": "dead", "rating": 5.0, "reviews": 17, "note": "Listed site doesn't load"},
+ "J&S Exterior Cleaning Solutions": {"checked": "2026-11-20", "status": "ok", "rating": 5.0, "reviews": 301, "note": "Working site: jsexteriorcleaning.com"},
+ "Pressure Cleaning Pros": {"checked": "2026-11-20", "status": "none", "rating": 4.8, "reviews": 71, "note": "No website on listing"},
+ "Pro Clean Pressure Washing 561 LLC": {"checked": "2026-11-20", "status": "dead", "rating": 5.0, "reviews": 141, "note": "Listed Squarespace site has expired"},
+ "R&R1 Pressure Cleaning and Painting": {"checked": "2026-11-20", "status": "dead", "rating": 4.8, "reviews": 137, "note": "Listed site doesn't load"},
+ "Touched by Grace Pressure Cleaning": {"checked": "2026-11-20", "status": "dead", "rating": 5.0, "reviews": 107, "note": "Listed domain is parked"},
+ "Costello Pro Wash": {"checked": "2026-11-20", "status": "none", "rating": 5.0, "reviews": 59, "note": "Only a Facebook page on listing. Warm lead"}
+}

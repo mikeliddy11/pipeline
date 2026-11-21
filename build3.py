@@ -2,6 +2,12 @@ import json, re, html
 from urllib.parse import quote_plus
 
 R = [list(r) for r in json.load(open('leads.json'))]
+# Scrub: the latest re-check of each lead's listing and site overrides the original scrape.
+SCRUB = {k: v for k, v in json.load(open('scrub.json')).items() if not k.startswith('_')}
+for r in R:
+    s = SCRUB.get(r[0])
+    if s:
+        r[4] = s['status']; r[5] = s['rating']; r[6] = s['reviews']
 
 FIX = {
  'Coastal Roofing of South Florida': {'phone': '(561) 258-9064'},
@@ -18,7 +24,8 @@ for r in R:
 
 def tel(p): return re.sub(r'\D', '', p)
 def gm(name, city):
-    return 'https://www.google.com/maps/search/?api=1&query=' + quote_plus('%s %s FL' % (name, city))
+    place = city if ',' in city else '%s FL' % city  # out-of-state leads carry their state, e.g. "Southampton, PA"
+    return 'https://www.google.com/maps/search/?api=1&query=' + quote_plus('%s %s' % (name, place))
 def esc(x): return html.escape(str(x), quote=True)
 
 def row(r):
@@ -28,14 +35,16 @@ def row(r):
     meta = ' &middot; '.join([esc(city), esc(niche)])
     if rating and reviews:
         meta += ' &middot; %.1f from %d reviews' % (rating, reviews)
+    s = SCRUB.get(name)
+    chk = ('<span class="chk">Checked %s: %s</span>' % (esc(s['checked'][5:].replace('-', '/')), esc(s['note']))) if s else '<span class="chk old">Not re-checked since Nov 6</span>'
     d = ('<a class="demo" href="%s">Demo</a>' % demo) if demo else ''
     return ('<li class="%s" data-phone="%s">'
             '<a class="biz" href="%s" target="_blank" rel="noopener">'
             '<b>%s</b><span class="m">%s</span><span class="f">%s</span>'
-            '<span class="status" aria-live="polite"></span></a>'
+            '%s<span class="status" aria-live="polite"></span></a>'
             '<a class="call" href="tel:+1%s">%s</a>'
             '<button class="log" type="button" data-name="%s" data-phone="%s">Log</button>%s</li>'
-            % (cls, esc(phone), gm(name, city), esc(name), meta, esc(flag),
+            % (cls, esc(phone), gm(name, city), esc(name), meta, esc(flag), chk,
                tel(phone), phone, esc(name), esc(phone), d))
 
 live = [r for r in R if r[0] not in SKIP]
@@ -107,6 +116,13 @@ textarea{min-height:64px;resize:vertical}
 .msg{font-size:13px;margin-top:10px;min-height:16px;color:var(--green)}
 .msg.err{color:var(--hot)}
 @media (max-width:420px){.call{font-size:13px;padding:12px 10px}.log{padding:0 7px}}
+.chk{display:block;font-size:11.5px;color:var(--green);margin-top:3px}.chk.old{color:var(--muted)}
+.cb{padding:18px 0 4px;border-bottom:1px solid var(--line)}
+.cb h3{font-size:12px;text-transform:uppercase;letter-spacing:.08em;margin:12px 0 4px;color:var(--muted)}
+.cb h3.over{color:var(--hot)}
+.cb .c{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--line)}
+.cb .c .t{flex:1 1 auto;min-width:0;font-size:14px}.cb .c .t span{display:block;font-size:12px;color:var(--muted)}
+.cb .empty{font-size:13px;color:var(--muted);margin:6px 0 0}
 @media (hover:none){.biz b::after{content:" \u2197";color:var(--muted);font-weight:500;font-size:13px}}"""
 
 SHEET = """
@@ -228,6 +244,7 @@ JS = """
       var latest=r.latest||{};
       for(var k in latest){ if(latest.hasOwnProperty(k)) paint(k, latest[k]); }
       var calls=r.calls||[];
+      drawCallbacks(calls);
       if(!calls.length){ recentBox.hidden=true; return; }
       recentBox.hidden=false; recentN.textContent=calls.length;
       var out='';
@@ -238,6 +255,36 @@ JS = """
       recentList.innerHTML=out;
     }).catch(function(){});
   }
+  // Callbacks due: the latest call per number that set a follow-up date.
+  function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function drawCallbacks(calls){
+    var box=document.getElementById('cb'), list=document.getElementById('cb-list'), n=document.getElementById('cb-n');
+    var seen={}, due=[];
+    var sorted=calls.slice().sort(function(a,b){return String(b.called_at).localeCompare(String(a.called_at));});
+    for(var i=0;i<sorted.length;i++){
+      var c=sorted[i], k=digits(c.phone);
+      if(seen[k]) continue; seen[k]=1;
+      if(c.follow_up_date && c.outcome!=='wrong_number') due.push(c);
+    }
+    var t=new Date(), today=t.getFullYear()+'-'+('0'+(t.getMonth()+1)).slice(-2)+'-'+('0'+t.getDate()).slice(-2);
+    due.sort(function(a,b){return a.follow_up_date.localeCompare(b.follow_up_date);});
+    var groups=[['Overdue','over',function(d){return d<today;}],['Today','',function(d){return d===today;}],['Coming up','',function(d){return d>today;}]];
+    var out='', count=0;
+    for(var g=0;g<groups.length;g++){
+      var rows=due.filter(function(c){return groups[g][2](c.follow_up_date);});
+      if(!rows.length) continue;
+      count+= g<2 ? rows.length : 0;
+      out+='<h3 class="'+groups[g][1]+'">'+groups[g][0]+'</h3>';
+      for(var j=0;j<rows.length;j++){
+        var c=rows[j], tel=digits(c.phone);
+        out+='<div class="c"><div class="t"><b>'+esc(c.lead_name)+'</b><span>'+esc(c.next_action||'Call back')+' · '+shortDate(c.follow_up_date+'T12:00:00')+'</span></div>'
+           +'<a class="call" href="tel:+1'+tel+'">Call</a><button class="log" type="button" data-name="'+esc(c.lead_name)+'" data-phone="'+esc(c.phone)+'">Log</button></div>';
+      }
+    }
+    box.hidden=false;
+    n.textContent=count;
+    list.innerHTML=out||'<p class="empty">No callbacks scheduled. Set a "Follow up on" date when you log a call and it shows up here.</p>';
+  }
   drawRecent();
 })();
 """
@@ -247,7 +294,8 @@ doc = ('<!DOCTYPE html>\n<html lang="en"><head><meta charset="utf-8">\n'
  '<meta name="robots" content="noindex, nofollow">\n'
  '<title>Leads and call log</title>\n<style>' + CSS + '</style></head><body><div class="wrap">\n'
  '<header><h1>Leads and call log, ' + str(len(live)) + ' to call</h1>\n'
- '<p class="sub">Numbers checked against live Google listings, 16 Nov. Tap a name for its Google listing, the number to call, Log when you hang up.</p></header>\n'
+ '<p class="sub">Pressure washing leads re-checked 20 Nov; the rest 16 Nov. Tap a name for its Google listing, the number to call, Log when you hang up.</p></header>\n'
+ '<section class="cb" id="cb" hidden><h2>Callbacks due <span class="n" id="cb-n"></span></h2><div id="cb-list"></div></section>\n'
  '<section class="recent" id="recent" hidden><h2>Recent calls <span class="n" id="recent-n"></span></h2><div id="recent-list"></div></section>\n'
  + body + '\n</div>' + SHEET + '\n<script>' + JS + '</script>\n</body></html>\n')
 
